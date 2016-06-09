@@ -13,7 +13,7 @@ app.config([
 
       $stateProvider
         .state('posts',{
-          url: '/posts{id}',
+          url: '/posts/{id}',
           templateUrl: '/posts.html',
           controller: 'PostsCtrl'
         });
