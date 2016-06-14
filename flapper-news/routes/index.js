@@ -29,12 +29,12 @@ router.post('/posts',function(req,res,next){
 });
 
 /* preload post objects */
-router.param('post',function(req,res,next,id){
+router.param('post', function(req, res, next, id) {
   var query = Post.findById(id);
 
-  query.exec(function(err,post){
-    if(err){ return next(err); }
-    if(!post){ return next(new Error('can\'t find post'));}
+  query.exec(function (err, post){
+    if (err) { return next(err); }
+    if (!post) { return next(new Error('can\'t find post')); }
 
     req.post = post;
     return next();
@@ -42,8 +42,33 @@ router.param('post',function(req,res,next,id){
 });
 
 /* GET single post */
-router.get('/posts/:post',function(req,res){
+router.get('/posts/:post', function(req, res) {
   res.json(req.post);
+});
+
+/* upvote a post */
+router.put('/posts/:post/upvote', function(req, res, next) {
+  req.post.upvote(function(err, post){
+    if (err) { return next(err); }
+
+    res.json(post);
+  });
+});
+
+/* comments router */
+router.post('/posts/:post/comments', function(req,res,next){
+  var comment = new Comment(req.body);
+  comment.post = req.post;
+
+  comment.save(function(err,comment){
+    if(err){ return next(err); }
+
+    req.post.comments.pusth(comment);
+    req.post.save(function(err,post){
+      if(err){ return next(err); }
+      res.json(comment);
+    });
+  });
 });
 
 module.exports = router;
