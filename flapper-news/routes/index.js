@@ -1,6 +1,7 @@
+var mongoose = require('mongoose');
 var express = require('express');
 var router = express.Router();
-var mongoose = require('mongoose');
+
 var Post = mongoose.model('Post');
 var Comment = mongoose.model('Comment');
 
@@ -41,9 +42,25 @@ router.param('post', function(req, res, next, id) {
   });
 });
 
+/* preload comment objects */
+router.param('comment', function(req, res, next, id) {
+  var query = Comment.findById(id);
+
+  query.exec(function (err, comment){
+    if (err) { return next(err); }
+    if (!comment) { return next(new Error('can\'t find post')); }
+
+    req.comment = comment;
+    return next();
+  });
+});
+
 /* GET single post */
-router.get('/posts/:post', function(req, res) {
-  res.json(req.post);
+router.get('/posts/:post', function(req, res, next) {
+  req.post.populate('comments',function(err,post){
+    if(err){ return next(err); }
+    res.json(req.post);
+  });
 });
 
 /* upvote a post */
@@ -56,18 +73,28 @@ router.put('/posts/:post/upvote', function(req, res, next) {
 });
 
 /* comments router */
-router.post('/posts/:post/comments', function(req,res,next){
+router.post('/posts/:post/comments', function(req, res, next) {
   var comment = new Comment(req.body);
   comment.post = req.post;
 
-  comment.save(function(err,comment){
+  comment.save(function(err, comment){
     if(err){ return next(err); }
 
-    req.post.comments.pusth(comment);
-    req.post.save(function(err,post){
+    req.post.comments.push(comment);
+    req.post.save(function(err, post) {
       if(err){ return next(err); }
+
       res.json(comment);
     });
+  });
+});
+
+/* upvote a comment */
+router.put('/posts/:post/comments/:comment/upvote', function(req, res, next) {
+  req.comment.upvote(function(err, comment){
+    if (err) { return next(err); }
+
+    res.json(comment);
   });
 });
 
